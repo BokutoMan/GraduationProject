@@ -1,16 +1,17 @@
 import logging
 from logging import Logger
-
+from utils.config import Config
 import os
-import subprocess
+import psutil
 
 class SimpleLogger:
     logger:Logger = None
     # 获取当前进程ID
     pid = os.getpid()
-
+    process = psutil.Process(pid)
+    log_file = Config.get_config()["logPath"]
     @classmethod
-    def get_new_logger(cls, name="memory", level=logging.INFO, log_file="log/memory.log"):
+    def get_new_logger(cls, name="memory", level=logging.INFO, log_file=log_file):
         """
         初始化日志类。
         
@@ -26,7 +27,7 @@ class SimpleLogger:
         
         # 如果提供了日志文件路径，则添加文件处理器
         if log_file:
-            file_handler = logging.FileHandler(log_file)
+            file_handler = logging.FileHandler(log_file, encoding='utf-8')
             file_handler.setFormatter(formatter)
             cls.logger.addHandler(file_handler)
         else:
@@ -45,15 +46,28 @@ class SimpleLogger:
         return cls.logger
     
     @classmethod
-    def memory_log(cls, msg=None):
-        # 使用tasklist命令获取内存使用情况
-        tasklist_output = subprocess.check_output(['tasklist', '/FI', f'PID eq {cls.pid}', '/FO', 'LIST']).decode(encoding='gbk')
-
-        # 解析输出以获取内存使用量
-        for line in tasklist_output.split('\n'):
-            if '内存使用' in line:
-                memory_usage = line.split(':')[-1].strip()
-                cls.logger.info(f'Memory usage: {memory_usage}' + ('' if msg == None else f"    Message: {msg}" ))
+    def memory_log(cls, msg=None, interval=1, cup_and_io=False):
+        if cls.logger == None:
+            cls.get_new_logger()
+        message = ""
+        # 获取内存使用量
+        memory_info = cls.process.memory_info()
+        message += f"Memory usage: {memory_info.rss / (1024 * 1024):.2f} MB   "
+        if cup_and_io:
+            # 获取cpu使用率
+            cpu_usage_percent = cls.process.cpu_percent(interval=None)
+            message += f"  CPU使用率: {cpu_usage_percent:.2f}%"
+            # 获取系统级别的IO信息
+            disk_io = psutil.disk_io_counters()
+            net_io = psutil.net_io_counters()
+            message += f"  磁盘读取速度：{disk_io.read_bytes / interval / (1024 * 1024):.2f} MB/s"
+            message += f"  磁盘写入速度：{disk_io.write_bytes / interval / (1024 * 1024):.2f} MB/s"
+            message += f"  网络发送速度：{net_io.bytes_sent / interval / (1024 * 1024):.2f} MB/s"
+            message += f"  网络接收速度：{net_io.bytes_recv / interval / (1024 * 1024):.2f} MB/s"
+        
+        # 加入msg
+        message += ('' if msg == None else f"    Message: {msg}" )
+        cls.logger.info(message)
 
 
 
