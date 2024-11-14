@@ -1,0 +1,8 @@
+logPath: log/memory.log
+
+# readFile: D:\tools\fm20240923\fm20240923.zip
+read_file_path: D:\ubuntu.iso
+
+block_size: 102*1
+# 15 %
+percentage: 100
