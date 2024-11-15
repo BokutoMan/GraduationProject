@@ -3,7 +3,10 @@ import hashlib
 import concurrent.futures
 from collections import Counter
 import matplotlib.pyplot as plt
+<<<<<<< HEAD
 from comm import timer_decorator
+=======
+>>>>>>> 172f5f07d82b4f358df4ced824ca1d0fa4c8ded7
 
 # 假设 data_blocks 是一个生成器，它逐个产生数据块
 def hash_data_block(block):
@@ -14,6 +17,7 @@ def hash_data_block(block):
 #         # 使用 map 来并行计算哈希值
 #         hash_values = list(executor.map(hash_data_block, data_blocks))
 #     return hash_values
+<<<<<<< HEAD
 logger = SimpleLogger.get_logger()
 @timer_decorator
 def go():
@@ -31,6 +35,20 @@ def go():
     print()
     return hash_counts
 hash_counts = go()
+=======
+
+# 计算哈希值并统计频率
+data_blocks = Reader.get_reader()
+# hash_values = compute_hashes(data_blocks)
+hash_counts = Counter()
+i = 0
+for block in data_blocks:
+    i += 1
+    hash_counts.update([hash_data_block(block),])
+    print(f"\r 正在计算第 {i} 个 hash ", end=" ")
+print()
+
+>>>>>>> 172f5f07d82b4f358df4ced824ca1d0fa4c8ded7
 # 使用 hash_counts 来生成直方图
 # 过滤出出现次数大于1的数据
 filtered_hash_counts = {k: v for k, v in hash_counts.items() if v > 1}
