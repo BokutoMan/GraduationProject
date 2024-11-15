@@ -18,6 +18,8 @@ for data in datas:
     hash_of_datas.update([hash_of_data])
     num += 1
     print(f"\r 第 {num} 个哈希块计算中", end=" ")
+    if num % 10000 == 0:
+        SimpleLogger.memory_log()
 print(f"\r 哈希块计算完成, 一共{num}个")
 
 Histogram_data_of_hashs = Counter(hash_of_datas.values())
