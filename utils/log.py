@@ -9,7 +9,7 @@ class SimpleLogger:
     # 获取当前进程ID
     pid = os.getpid()
     process = psutil.Process(pid)
-    log_file = Config.get_config()["logPath"]
+    log_file = Config.get_log_config()["log_file_path"]
     @classmethod
     def get_new_logger(cls, name="memory", level=logging.INFO, log_file=log_file):
         """
