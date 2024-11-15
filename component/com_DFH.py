@@ -26,7 +26,7 @@ Histogram_data_of_hashs = Counter(hash_of_datas.values())
 
 Histogram_data_of_hashs = list(Histogram_data_of_hashs.items())
 
-Histogram_data_of_hashs.sort(key= lambda x:x[1])
+Histogram_data_of_hashs.sort()
 
 print(Histogram_data_of_hashs)
 
