@@ -4,6 +4,6 @@ log:
 # readFile: D:\tools\fm20240923\fm20240923.zip
 reader:
     read_file_path: D:\temp\ubuntu.iso    # 4.5 GB
-    big_block_size: 1024*1024*50  # 5MB
-    block_size: 1024*1024*10     # 4KB
+    big_block_size: 1024*1024  # 1MB
+    block_size: 1024*4     # 4KB
     percentage: 100      # 100 %
