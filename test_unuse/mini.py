@@ -1,61 +1,89 @@
 import numpy as np
-from scipy.optimize import minimize
-from get_Ap import build_probability_transition_matrix
-import yaml
+import test_unuse.get_Ap as tool
+from comm import timer_decorator
 
-max = 7
-p = 0.9
-data = yaml.safe_load(open("test_unuse/data.yaml", 'r'))['y2']
-print("data", data)
-y = np.array(data)    # 用实际的y向量替换...
-# y = np.random.randint(low=0, high=5, size=(5, ))
-print("y: ", y)
-# 变量的维度
-n = len(y) * int(1/p)
-# 使用pad函数在末尾补零
-y = np.pad(y, (0, n - y.size), 'constant', constant_values=(0, 0))
-# A_p 和 y 是已知的，并且已经定义为numpy数组
-A_p = build_probability_transition_matrix(n, p)
-print("shape Ap:", A_p.size)
-N = sum(y) * int(1/p)
-print("N:", N)
-import numpy as np
-from scipy.optimize import minimize
+"""
+约定变量名如下:
+    D_of_sample  样本的非重复块数
+    N_of_sample  样本的块数
+    Max_of_sample  样本中重复次数最多的块的数目
 
-# 定义目标函数 Δ_p(x', y)
-def delta_p(x_prime, y, A_p):
-    return np.sum(1 / np.sqrt(y + 1) * np.abs(y - np.dot(A_p, x_prime)))
+    D_of_S  整个数据集的非重复块数
+    N_of_S  整个数据集的块数
+    Max_of_S    整个数据集重复次数最多的块的数目
 
-# 初始化数据
-# 假设 A_p 是一个已知的矩阵，y 是已知的向量，N 是目标的总和
+线性规划的目标函数参数:
+    y : 样本的DFH     (Max_of_sample, 1)
+    x : S的DFH        (Max_of_S, 1)
+    p : 采样率        0 <= p <= 1
+    Ap : 概率装移矩阵   (Max_of_S, Max_of_S)
+    yPrime : 从S中以采样率p采样得到的样本的DFH    (Max_of_S, 1)
+
+已知变量:
+    sample的变量、N_of_S
+    y, p 
+计算过程:
+    Max_of_S, D_of_S 需要估计,简单使用 Max_of_sample/p, D_of_sample/p 进行估计
+    Ap = build_probability_transition_matrix(Max_of_S, p)
+    将y补0到大小 (Max_of_S, 1)
+    yPrime = Ap * x
+
+    求使得 ||y - yPrime|| * weight  最小的 x
+
+    满足条件: get_sum_num(y) = get_sum_num(x) * p = get_sum_num(yPrime)
+            yPrime = Ap * x
+
+"""
+# D_of_sample = 9000
+# N_of_sample = 10000
+# Max_of_sample = 100
+
+# p = 0.1
+
+# D_of_S = int(D_of_sample/p)
+# N_of_S = int(N_of_sample/p)
+# Max_of_S = int(Max_of_sample/p)
+
+@timer_decorator(msg="主程序消耗时间")
+def main():
+    D_of_sample = 9000
+    N_of_sample = 10000
+    Max_of_sample = 100
+
+    p = 0.1
+
+    D_of_S = int(D_of_sample/p)
+    N_of_S = int(N_of_sample/p)
+    Max_of_S = int(Max_of_sample/p)
 
 
+    # y : 样本的DFH     (Max_of_sample, 1)
+    y = tool.generate_uniform_dfh(D_of_sample, Max_of_sample)
+    N_of_sample = tool.get_sum_num(y)
+    N_of_S = int(N_of_sample/p)
+    assert len(y) == Max_of_sample
+    assert sum(y) == D_of_sample
 
-# 初始值
-x0 = np.ones(n) / n
+    # x : S的DFH        (Max_of_S, 1)
+    # p : 采样率        0 <= p <= 1
+    # Ap : 概率装移矩阵   (Max_of_S, Max_of_S)
+    # yPrime : 从S中以采样率p采样得到的样本的DFH    (Max_of_S, 1)
 
-# 约束条件
-constraints = [
-    {"type": "eq", "fun": lambda x: np.sum(x * np.arange(1, 1+len(x))) - N},  # \\sum_i x'_i * i = N
-    {"type": "ineq", "fun": lambda x: x}  # x'_i >= 0
-]
+    Ap = tool.build_probability_transition_matrix(Max_of_S, p)
+    print(Ap.shape)
 
-# 优化
-result = minimize(
-    delta_p,  # 目标函数
-    x0,       # 初始值
-    args=(y, A_p),  # 目标函数的参数
-    constraints=constraints,  # 约束条件
-    bounds=[(0, None)] * n  # 保证所有 x'_i >= 0
-)
+    x = tool.generate_uniform_dfh(D_of_S, Max_of_S)
+    yPrime = Ap.dot(x)
 
-# 输出结果
-if result.success:
-    print("优化成功！")
-    print("最优解 x':", result.x)
-    print("目标函数最小值:", result.fun)
-    print("sum of x:",  sum(result.x))
-    print("sum(x)/sum(y)",  sum(result.x)/ sum(y))
-else:
-    print("优化失败：", result.message)
+    # 给y 补零
+    padding_size = Max_of_S - y.shape[0]
+    y = np.pad(y, (0, padding_size), mode='constant', constant_values=0)
 
+    assert y.shape == yPrime.shape
+
+    # 计算 Δ_p(x', y)
+    delta_p = np.sum(1 / np.sqrt(y + 1) * np.abs(y - yPrime))
+
+    print(" Δ_p(x', y): ", delta_p)
+
+main()

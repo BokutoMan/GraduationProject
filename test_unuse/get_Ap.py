@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.special import comb
+from comm import timer_decorator
 
+@timer_decorator(msg="生成Ap")
 def build_probability_transition_matrix(max_frequency, p):
     """
     构建概率转移矩阵 A_p (抽奖矩阵)
@@ -52,51 +54,79 @@ def round_to_even(float_array):
     
     return rounded_array
 
-def generate_uniform_dfh(total_docs, max_frequency):
+@timer_decorator(msg="生成DFH")
+def generate_uniform_dfh(D_of_sample, Max_of_sample):
         """
-        生成一个均匀分布的文档频率直方图（DFH）。
+        生成一个随机分布的文档频率直方图（DFH）。
 
-        :param total_docs: 文档的总数。
-        :param max_frequency: 文档可能出现的最大频率。
         :return: 文档频率直方图（DFH）。
         """
-        # 计算每个频率下大约有多少文档
-        num_docs_per_frequency = total_docs // (max_frequency + 1)
-        # 剩余的文档需要平均分配到各个频率
-        remainder = total_docs % (max_frequency + 1)
-        # 初始化DFH，所有条目设置为num_docs_per_frequency
-        dfh = np.full(max_frequency + 1, num_docs_per_frequency, dtype=int)
-        # 将剩余的文档平均分配到各个频率
-        for i in range(remainder):
-            dfh[i] += 1
-        return dfh
+        dfh = []
+        avg_num = D_of_sample // (Max_of_sample)
+        import random
+        for _ in range(Max_of_sample):
+            dfh.append(random.randint(0,avg_num*2))
+        # 处理多余的或者不足的
+        dfh.sort(reverse=True)
+        delta = D_of_sample - sum(dfh)
+        if delta >= 0:
+            dfh[0] += delta
+        else:
+            i = 0
+            delta = -delta
+            while delta != 0:
+                t = dfh[i] - 1
+                dfh[i] -= min(delta, t)
+                delta -= min(delta, t)
+                i += 1
+        dfh.sort(reverse=True)   
+        import numpy as np       
+        return np.array(dfh)
+
+def get_sum_num(l:list):
+    sum = 0
+    for i, num in enumerate(l):
+        sum += i*num
+    return sum
 
 if __name__=="__main__":
 
-    # 示例：生成一个总数为100，最高频率为50的DFH
-    total_docs = 100
-    max_frequency = 50
-    dfh = generate_uniform_dfh(total_docs, max_frequency)
-    print(dfh)
+    generate_uniform_dfh(100, 20)
+    # # 示例：生成一个D总数为100，最高频率为50的DFH
+    # total_docs = 10000
+    # max_frequency = 100
+    # dfh = generate_uniform_dfh(total_docs, max_frequency)
+    # print(dfh)
 
-    # 示例：构建一个维度为50且采样比例为50%的概率转移矩阵
-    # 参数设置
-    p = 0.5  # 采样比例
-    m = 50  # 文档频率的最大值
+    # # 示例：构建一个维度为50且采样比例为50%的概率转移矩阵
+    # # 参数设置
+    # p = 0.5  # 采样比例
+    # m = 100  # 文档频率的最大值
 
-    # 计算 Ap 矩阵
-    Ap = build_probability_transition_matrix(m+1, p)
+    # # 计算 Ap 矩阵
+    # Ap = build_probability_transition_matrix(m+1, p)
 
-    # 计算 yPrime 向量
-    yPrime = compute_yPrime(Ap, dfh)
+    # # 计算 yPrime 向量
+    # yPrime = compute_yPrime(Ap, dfh)
 
-    int_array = round_to_even(yPrime)
-    print(int_array)
-    # print("Original sum:", np.sum(yPrime))
-    print("New sum:", np.sum(int_array))
+    # int_array = round_to_even(yPrime)
+    # print("int_array(y')", int_array)
+    # # print("Original sum:", np.sum(yPrime))
+    # print("New sum:", np.sum(int_array))
 
-    print(sum(dfh))
+    # print(sum(dfh))
+    # print(sum(yPrime))
 
-    print(len(yPrime))
+    # print(len(yPrime))
+    # print("sum of sub", get_sum_num(yPrime))
+    # print("sum of all:", get_sum_num(dfh))
+    
+    # print("shape of A:", Ap.shape)
+    # print("shape of x:", dfh.shape)
+    # print("shape of y' :", yPrime.shape)
+    # print()
+    # print("num of not zero in y':", np.count_nonzero(int_array))
+
+    # yTrue = generate_uniform_dfh(total_docs, max_frequency)
 
 
