@@ -23,11 +23,6 @@ def build_probability_transition_matrix(max_frequency, p):
     
     return A_p
 
-# 定义一个函数来计算向量y'
-def compute_yPrime(Ap, xPrime):
-    yPrime = np.dot(Ap, xPrime)
-    return yPrime
-
 def round_to_even(float_array):
     """
     将浮点数数组舍入到最近的偶数，保持总和不变。

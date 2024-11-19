@@ -4,9 +4,6 @@ from collections import Counter
 class DataSet:
     def __init__(self, mean=100, size=1_000_000) -> None:
         self.data = np.random.poisson(mean, size)
-
-
-
         self.frequency = Counter(self.data)
         self.dfh = Counter(self.frequency.values())
         self.dfh = sorted(self.dfh.items())

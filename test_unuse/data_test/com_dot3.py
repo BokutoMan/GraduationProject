@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 from warps import timer_decorator
-import test_unuse.get_Ap as tool
+import component.com_Ap as tool
 
 @timer_decorator(msg="主函数")
 def main():
