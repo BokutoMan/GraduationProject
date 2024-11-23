@@ -1,28 +1,39 @@
 import numpy as np
 from scipy.special import comb
 from comm import timer_decorator
+from scipy.sparse import csr_matrix
 
 @timer_decorator(msg="生成Ap")
 def build_probability_transition_matrix(max_frequency, p):
     """
-    构建概率转移矩阵 A_p (抽奖矩阵)
+    构建稀疏概率转移矩阵 A_p (抽奖矩阵)
 
-    :param max_frequency: 最大重复次数(最大的抽奖池子)
-    :param p: 采样比例(抽出比例为p的样品)
-    :return: 概率转移矩阵 A_p (包含每个独立块抽中0-max块的概率)
+    :param max_frequency: 最大重复次数 (最大的抽奖池子)。
+    :param p: 采样比例 (抽出比例为p的样品)。
+    :return: 稀疏概率转移矩阵 A_p (csr_matrix 格式)。
     """
-    # 初始化矩阵A_p，所有元素为0
-    A_p = np.zeros((max_frequency, max_frequency))
+    rows, cols, data = [], [], []
     
-    # 填充矩阵A_p
-    for j in range(max_frequency):  # 对于频率为j的独立块
-        for i in range(max_frequency):  # 抽中i块的概率
-            # 计算从j块中抽到i块的概率
-            prob = comb(j, i) * (p ** i) * ((1 - p) ** (j - i))
-            A_p[i, j] = prob
-    
-    return A_p
+    # 稀疏性规则定义
+    # [(0, 100), (1, 50), (2, 25), (3, 12), (4, 7), (5, 3), (6, 1), (7, 1), (10, 1)]
+    def sampling_step(value):
+        return pow(2, value//100)
 
+    # 填充稀疏矩阵
+    for j in range(max_frequency):  # 遍历频率范围
+        step = sampling_step(j)
+        if j % step == 0:  # 根据稀疏性规则选择值
+            for i in range(max_frequency):  # 计算抽中 i 块的概率
+                prob = comb(j, i) * (p ** i) * ((1 - p) ** (j - i))
+                if prob > 0:  # 仅存储非零概率值
+                    rows.append(i)
+                    cols.append(j)
+                    data.append(prob)
+    
+    # 构建稀疏矩阵
+    sparse_matrix = csr_matrix((data, (rows, cols)), shape=(max_frequency, max_frequency))
+    return sparse_matrix
+    
 def round_to_even(float_array):
     """
     将浮点数数组舍入到最近的偶数，保持总和不变。
@@ -83,45 +94,3 @@ def get_sum_num(l:list):
     for i, num in enumerate(l):
         sum += i*num
     return sum
-
-if __name__=="__main__":
-
-    generate_uniform_dfh(100, 20)
-    # # 示例：生成一个D总数为100，最高频率为50的DFH
-    # total_docs = 10000
-    # max_frequency = 100
-    # dfh = generate_uniform_dfh(total_docs, max_frequency)
-    # print(dfh)
-
-    # # 示例：构建一个维度为50且采样比例为50%的概率转移矩阵
-    # # 参数设置
-    # p = 0.5  # 采样比例
-    # m = 100  # 文档频率的最大值
-
-    # # 计算 Ap 矩阵
-    # Ap = build_probability_transition_matrix(m+1, p)
-
-    # # 计算 yPrime 向量
-    # yPrime = compute_yPrime(Ap, dfh)
-
-    # int_array = round_to_even(yPrime)
-    # print("int_array(y')", int_array)
-    # # print("Original sum:", np.sum(yPrime))
-    # print("New sum:", np.sum(int_array))
-
-    # print(sum(dfh))
-    # print(sum(yPrime))
-
-    # print(len(yPrime))
-    # print("sum of sub", get_sum_num(yPrime))
-    # print("sum of all:", get_sum_num(dfh))
-    
-    # print("shape of A:", Ap.shape)
-    # print("shape of x:", dfh.shape)
-    # print("shape of y' :", yPrime.shape)
-    # print()
-    # print("num of not zero in y':", np.count_nonzero(int_array))
-
-    # yTrue = generate_uniform_dfh(total_docs, max_frequency)
-
-

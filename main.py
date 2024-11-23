@@ -1,47 +1,79 @@
-from utils import *
-import hashlib
-import concurrent.futures
+from utils import Reader, SimpleLogger
 from collections import Counter
-import matplotlib.pyplot as plt
-from comm import timer_decorator
+from comm import hash_mm3_64
+from component.HashCount import HashCount
+from component.CustomHeap import CustomHeap
 
-# 假设 data_blocks 是一个生成器，它逐个产生数据块
-def hash_data_block(block):
-    return hashlib.sha256(block).hexdigest()
+def compute_dfh(datas, log_interval=10000, max_blocks=None):
+    """
+    计算数据频率直方图（DFH）。
 
-# def compute_hashes(data_blocks):
-#     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-#         # 使用 map 来并行计算哈希值
-#         hash_values = list(executor.map(hash_data_block, data_blocks))
-#     return hash_values
-logger = SimpleLogger.get_logger()
-@timer_decorator
-def go():
-    # 计算哈希值并统计频率
-    data_blocks = Reader.get_reader()
-    # hash_values = compute_hashes(data_blocks)
-    hash_counts = Counter()
-    i = 0
-    for block in data_blocks:
-        i += 1
-        hash_counts.update([hash_data_block(block),])
-        if i % 1000 == 0:
-            logger.memory_log()
-        print(f"\r 正在计算第 {i} 个 hash ", end=" ")
-    print()
-    return hash_counts
-hash_counts = go()
-# 使用 hash_counts 来生成直方图
-# 过滤出出现次数大于1的数据
-filtered_hash_counts = {k: v for k, v in hash_counts.items() if v > 1}
-print(filtered_hash_counts.values())
-# 准备直方图数据
-frequencies = list(filtered_hash_counts.values())
-labels = [i for i in range(len(frequencies))]
+    :param datas: 数据块迭代器。
+    :param log_interval: 每隔多少个块记录一次内存日志。
+    :param max_blocks: 低内存模式下，限制要统计的最大块数。如果为 None，则统计所有数据块。
+    :return: 排序后的直方图数据，格式为 [(频率, 出现次数), ...]。
+    """
+    hash_of_datas = Counter()
+    num = 0
 
-# 生成直方图
-plt.bar(labels, frequencies)
-plt.xlabel('Hash Prefixes')
-plt.ylabel('Frequency')
-plt.title('Frequency Distribution Histogram of Hash Prefixes')
-plt.show()
+    if max_blocks is not None:
+        # 低内存模式：只统计哈希值最大的部分
+        # 创建一个最大堆来跟踪哈希值
+        heap = CustomHeap()
+
+        # 遍历数据块，计算哈希并记录
+        for data in datas:
+            hash_of_data = hash_mm3_64(data)  # 计算哈希值
+            heap.push(HashCount(hash_of_data, 1))  # 将哈希值推入堆中
+            num += 1
+
+            # 实时打印进度
+            print(f"\r 第 {num} 个哈希块计算中", end=" ")
+
+            # 每隔 log_interval 记录一次内存状态
+            if num % log_interval == 0:
+                SimpleLogger.memory_log()
+
+            # 如果堆的大小超过 max_blocks，删除最小的元素
+            if len(heap) > max_blocks:
+                heap.pop()
+
+        # 打印完成信息
+        print(f"\r 哈希块计算完成, 一共 {num} 个")
+
+        # 统计哈希频率直方图
+        for hash_of_data in heap:
+            hash_of_datas.update([hash_of_data.count])
+
+    else:
+        # 常规模式：统计所有内存块
+        # 遍历数据块，计算哈希并统计频率
+        for data in datas:
+            hash_of_data = hash_mm3_64(data)  # 计算哈希值
+            heap.push(HashCount(hash_of_data, 1))  # 将哈希值推入堆中
+            num += 1
+
+            # 实时打印进度
+            print(f"\r 第 {num} 个哈希块计算中", end=" ")
+
+            # 每隔 log_interval 记录一次内存状态
+            if num % log_interval == 0:
+                SimpleLogger.memory_log()
+
+        # 打印完成信息
+        print(f"\r 哈希块计算完成, 一共 {num} 个")
+
+    # 统计哈希频率直方图
+    histogram_data = Counter(hash_of_datas.values())
+    histogram_data = list(histogram_data.items())  # 转换为列表
+    histogram_data.sort()  # 按频率排序
+
+    return histogram_data
+
+
+# 使用函数
+if __name__ == "__main__":
+    datas = Reader.get_reader()  # 获取数据块迭代器
+    max_blocks = 10000  # 低内存模式下最大块数，设置为 None 代表常规模式
+    dfh = compute_dfh(datas, log_interval=10000, max_blocks=max_blocks)  # 计算 DFH
+    print(dfh)  # 输出直方图
