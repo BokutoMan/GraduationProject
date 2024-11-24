@@ -35,7 +35,7 @@ def main():
     datas = Reader.get_reader(new=True)  # 获取数据块迭代器
     dfh = compute_dfh_use_counter(datas, log_interval=100000)  # 计算 DFH
     print(dfh)  # 输出直方图
-    p = 0.2
+    p = 0.5
 
     # 转换为稀疏矩阵
     dfh = dfh_to_sparse_vector(dfh)
@@ -46,34 +46,8 @@ def main():
 
     D_of_sample, N_of_sample, Max_of_sample = compute_sample_properties(dfh)
     print(D_of_sample, N_of_sample, Max_of_sample)
-    # # 数据准备
-    # D_of_S = int(D_of_sample / p)
-    # N_of_S = int(N_of_sample / p)
-    # Max_of_S = int(Max_of_sample / p)
 
-    DFH = dfh + 0.000001
-
-    # # # 从 DFH 计算样本的基本属性
-    # D_of_sample, N_of_sample, Max_of_sample = compute_sample_properties(DFH)
-    # # 数据准备
-    # D_of_S = int(D_of_sample / p)
-    # N_of_S = int(N_of_sample / p)
-    # Max_of_S = int(Max_of_sample / p)
-
-    # # 补零使 DFH 长度与 Max_of_S 匹配
-    # DFH = pad_dfh(DFH, Max_of_S)
-    # if sp.issparse(DFH):
-    #     DFH_dense = DFH.toarray().flatten()  # 转换为 1D 稠密数组
-    # else:
-    #     DFH_dense = DFH
-
-    # # 构建概率转移矩阵 Ap
-    # Ap = tool.build_probability_transition_matrix(Max_of_S, p)
-    # print(Ap)
-
-    
-    # not_zero = get_nonzero_columns(Ap)
-    # print(not_zero)
+    DFH = dfh + 1.0e-30
     # 计算最优解
     x_optimal = solve_optimal_x(
         DFH, p, det=0.001, verbose=True

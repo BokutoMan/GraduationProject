@@ -97,8 +97,8 @@ def solve_optimal_x(DFH, p, det=0.001, solver_options=None, verbose=True):
     indices = np.arange(Max_of_S)
     get_sum_expr = cp.sum(cp.multiply(indices, x))
     constraints = [
-        # cp.sum(x) - D_of_S <= D_of_S * 1 / 2,
-        # cp.sum(x) - D_of_S >= D_of_S * -1 / 2,
+        cp.sum(x) - D_of_S <= D_of_S * 1 / 2,
+        cp.sum(x) - D_of_S >= D_of_S * -1 / 2,
         get_sum_expr - N_of_S <= N_of_S * det,
         # x >= 0,  # 非负约束
     ]
