@@ -17,15 +17,16 @@ def build_probability_transition_matrix(max_frequency, p):
     # 稀疏性规则定义
     # [(0, 100), (1, 50), (2, 25), (3, 12), (4, 7), (5, 3), (6, 1), (7, 1), (10, 1)]
     def sampling_step(value):
-        return pow(2, value//100)
+        return min(int(pow(1.5, value//100)), 100)
 
     # 填充稀疏矩阵
     for j in range(max_frequency):  # 遍历频率范围
         step = sampling_step(j)
         if j % step == 0:  # 根据稀疏性规则选择值
-            for i in range(max_frequency):  # 计算抽中 i 块的概率
+            for i in range(j + 1):  # 计算抽中 i 块的概率
                 prob = comb(j, i) * (p ** i) * ((1 - p) ** (j - i))
-                if prob > 0:  # 仅存储非零概率值
+                 # 仅存储大于 1.0e-20 的概率值，忽略非常小或无效的值
+                if prob > 1.0e-20 and np.isfinite(prob):  
                     rows.append(i)
                     cols.append(j)
                     data.append(prob)
@@ -33,6 +34,13 @@ def build_probability_transition_matrix(max_frequency, p):
     # 构建稀疏矩阵
     sparse_matrix = csr_matrix((data, (rows, cols)), shape=(max_frequency, max_frequency))
     return sparse_matrix
+
+# 函数：提取包含非零值的列的序号
+def get_nonzero_columns(sparse_matrix):
+    # `nonzero()` 方法返回矩阵中非零元素的行列索引
+    _, nonzero_columns = sparse_matrix.nonzero()
+    # 使用 `set()` 来去重，保证每个列索引只出现一次
+    return sorted(set(nonzero_columns))
     
 def round_to_even(float_array):
     """

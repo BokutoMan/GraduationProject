@@ -1,79 +1,90 @@
 from utils import Reader, SimpleLogger
-from collections import Counter
-from comm import hash_mm3_64
 from component.HashCount import HashCount
-from component.CustomHeap import CustomHeap
+import component.MathUtils as tool
+from component import compute_dfh_use_counter, solve_optimal_x
+from comm import timer_decorator
+from component.optimal_solver import compute_sample_properties, pad_dfh
 
-def compute_dfh(datas, log_interval=10000, max_blocks=None):
+from scipy.sparse import csr_matrix
+import scipy.sparse as sp
+
+def dfh_to_sparse_vector(dfh, max_index=None):
     """
-    计算数据频率直方图（DFH）。
+    将 DFH 转换为稀疏矩阵的一维列向量。
 
-    :param datas: 数据块迭代器。
-    :param log_interval: 每隔多少个块记录一次内存日志。
-    :param max_blocks: 低内存模式下，限制要统计的最大块数。如果为 None，则统计所有数据块。
-    :return: 排序后的直方图数据，格式为 [(频率, 出现次数), ...]。
+    :param dfh: 列表，格式为 [(索引, 值), ...]，如 [(2, 523998), (12, 1), (14, 1), (492, 1)]。
+    :param max_index: 稀疏向量的最大索引（可选）。如果为 None，将根据 DFH 数据自动推断。
+    :return: 稀疏矩阵形式的列向量（csr_matrix）。
     """
-    hash_of_datas = Counter()
-    num = 0
+    # # 使用生成器表达式过滤第一个值大于10的元组
+    # dfh = [(i, v) for i, v in dfh if v < 10]
+    # 提取索引和值
+    indices, values = zip(*dfh)
 
-    if max_blocks is not None:
-        # 低内存模式：只统计哈希值最大的部分
-        # 创建一个最大堆来跟踪哈希值
-        heap = CustomHeap()
+    # 自动推断最大索引（如果未提供）
+    if max_index is None:
+        max_index = max(indices) + 1  # 最大索引加 1 作为大小
 
-        # 遍历数据块，计算哈希并记录
-        for data in datas:
-            hash_of_data = hash_mm3_64(data)  # 计算哈希值
-            heap.push(HashCount(hash_of_data, 1))  # 将哈希值推入堆中
-            num += 1
-
-            # 实时打印进度
-            print(f"\r 第 {num} 个哈希块计算中", end=" ")
-
-            # 每隔 log_interval 记录一次内存状态
-            if num % log_interval == 0:
-                SimpleLogger.memory_log()
-
-            # 如果堆的大小超过 max_blocks，删除最小的元素
-            if len(heap) > max_blocks:
-                heap.pop()
-
-        # 打印完成信息
-        print(f"\r 哈希块计算完成, 一共 {num} 个")
-
-        # 统计哈希频率直方图
-        for hash_of_data in heap:
-            hash_of_datas.update([hash_of_data.count])
-
-    else:
-        # 常规模式：统计所有内存块
-        # 遍历数据块，计算哈希并统计频率
-        for data in datas:
-            hash_of_data = hash_mm3_64(data)  # 计算哈希值
-            heap.push(HashCount(hash_of_data, 1))  # 将哈希值推入堆中
-            num += 1
-
-            # 实时打印进度
-            print(f"\r 第 {num} 个哈希块计算中", end=" ")
-
-            # 每隔 log_interval 记录一次内存状态
-            if num % log_interval == 0:
-                SimpleLogger.memory_log()
-
-        # 打印完成信息
-        print(f"\r 哈希块计算完成, 一共 {num} 个")
-
-    # 统计哈希频率直方图
-    histogram_data = Counter(hash_of_datas.values())
-    histogram_data = list(histogram_data.items())  # 转换为列表
-    histogram_data.sort()  # 按频率排序
-
-    return histogram_data
+    # 创建稀疏矩阵
+    sparse_vector = csr_matrix((values, (indices, [0] * len(indices))), shape=(max_index, 1))
+    return sparse_vector
 
 
-# 使用函数
-if __name__ == "__main__":
-    datas = Reader.get_reader()  # 获取数据块迭代器
-    max_blocks = 10000  # 低内存模式下最大块数，设置为 None 代表常规模式
-    dfh = compute_dfh(datas, log_interval=10000, max_blocks=max_blocks)  # 计算 DFH
+@timer_decorator("main函数: 使用counter统计频率")
+def main():
+    datas = Reader.get_reader(new=True)  # 获取数据块迭代器
+    dfh = compute_dfh_use_counter(datas, log_interval=100000)  # 计算 DFH
     print(dfh)  # 输出直方图
+    p = 0.2
+
+    # 转换为稀疏矩阵
+    dfh = dfh_to_sparse_vector(dfh)
+    # 打印结果
+    print("稀疏矩阵（列向量）：")
+    print(dfh)
+    dfh = dfh.toarray().flatten()
+
+    D_of_sample, N_of_sample, Max_of_sample = compute_sample_properties(dfh)
+    print(D_of_sample, N_of_sample, Max_of_sample)
+    # # 数据准备
+    # D_of_S = int(D_of_sample / p)
+    # N_of_S = int(N_of_sample / p)
+    # Max_of_S = int(Max_of_sample / p)
+
+    DFH = dfh + 0.000001
+
+    # # # 从 DFH 计算样本的基本属性
+    # D_of_sample, N_of_sample, Max_of_sample = compute_sample_properties(DFH)
+    # # 数据准备
+    # D_of_S = int(D_of_sample / p)
+    # N_of_S = int(N_of_sample / p)
+    # Max_of_S = int(Max_of_sample / p)
+
+    # # 补零使 DFH 长度与 Max_of_S 匹配
+    # DFH = pad_dfh(DFH, Max_of_S)
+    # if sp.issparse(DFH):
+    #     DFH_dense = DFH.toarray().flatten()  # 转换为 1D 稠密数组
+    # else:
+    #     DFH_dense = DFH
+
+    # # 构建概率转移矩阵 Ap
+    # Ap = tool.build_probability_transition_matrix(Max_of_S, p)
+    # print(Ap)
+
+    
+    # not_zero = get_nonzero_columns(Ap)
+    # print(not_zero)
+    # 计算最优解
+    x_optimal = solve_optimal_x(
+        DFH, p, det=0.001, verbose=True
+    )
+
+    # 输出结果
+    if x_optimal is not None:
+        N_of_sample = int(sum(i * count for i, count in enumerate(DFH)))
+        N_of_S = int(N_of_sample / p)
+        result = sum(x_optimal)/ N_of_S
+        print("数据集的缩减效果", result)
+        print("样本的缩减效果", D_of_sample/N_of_sample)
+
+main()
