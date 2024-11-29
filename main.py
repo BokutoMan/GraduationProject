@@ -35,19 +35,19 @@ def main():
     datas = Reader.get_reader(new=True)  # 获取数据块迭代器
     dfh = compute_dfh_use_counter(datas, log_interval=100000)  # 计算 DFH
     print(dfh)  # 输出直方图
-    p = 0.5
+    p = 0.3
 
     # 转换为稀疏矩阵
     dfh = dfh_to_sparse_vector(dfh)
     # 打印结果
     print("稀疏矩阵（列向量）：")
     print(dfh)
-    dfh = dfh.toarray().flatten()
+    dfh_flatten = dfh.toarray().flatten()
 
-    D_of_sample, N_of_sample, Max_of_sample = compute_sample_properties(dfh)
+    D_of_sample, N_of_sample, Max_of_sample = compute_sample_properties(dfh_flatten)
     print(D_of_sample, N_of_sample, Max_of_sample)
 
-    DFH = dfh + 1.0e-30
+    DFH = dfh_flatten + 1.0e-30
     # 计算最优解
     x_optimal = solve_optimal_x(
         DFH, p, det=0.001, verbose=True
@@ -58,7 +58,10 @@ def main():
         N_of_sample = int(sum(i * count for i, count in enumerate(DFH)))
         N_of_S = int(N_of_sample / p)
         result = sum(x_optimal)/ N_of_S
+        print("x: ", x_optimal)
         print("数据集的缩减效果", result)
         print("样本的缩减效果", D_of_sample/N_of_sample)
+        print("稀疏矩阵（列向量）：")
+        print(dfh)
 
 main()

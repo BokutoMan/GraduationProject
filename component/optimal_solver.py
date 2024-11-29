@@ -53,7 +53,7 @@ def pad_dfh(DFH, Max_of_S):
 
 
 @timer_decorator(msg="线性求解器,求解预期全数据集DFH(x)")
-def solve_optimal_x(DFH, p, det=0.001, solver_options=None, verbose=True):
+def solve_optimal_x(DFH, p, det=0.00001, solver_options=None, verbose=True):
     """
     根据输入的DFH，计算最优的x。
 
@@ -84,14 +84,14 @@ def solve_optimal_x(DFH, p, det=0.001, solver_options=None, verbose=True):
     # 构建概率转移矩阵 Ap
     Ap = tool.build_probability_transition_matrix(Max_of_S, p)
 
-    not_zero_cows = tool.get_nonzero_columns(Ap)
-
     # 定义优化变量
     x = cp.Variable((Max_of_S, 1), integer=False)
+    x.value = np.zeros((Max_of_S, 1))
+
 
     # 定义目标函数
     weights = 1 / np.sqrt(DFH_dense + 1)  # 权重
-    objective = cp.Minimize(cp.sum(cp.multiply(weights, cp.abs(DFH_dense - Ap @ x))))
+    objective = cp.Minimize(cp.sum(cp.multiply(weights, cp.abs(DFH_dense - cp.pos(Ap @ x)))))
 
     # 构建约束
     indices = np.arange(Max_of_S)
@@ -100,14 +100,15 @@ def solve_optimal_x(DFH, p, det=0.001, solver_options=None, verbose=True):
         cp.sum(x) - D_of_S <= D_of_S * 1 / 2,
         cp.sum(x) - D_of_S >= D_of_S * -1 / 2,
         get_sum_expr - N_of_S <= N_of_S * det,
-        # x >= 0,  # 非负约束
+        x >= 0,  # 非负约束
     ]
     # 添加其他条件：如果某列没有非零值，则 x[i] = 0
-    for i in range(Max_of_S):
-        if i not in not_zero_cows:
-            constraints.append(x[i] == 0)  # x[i] 必须为 0
-        else :
-            constraints.append(x[i] >= 0)
+    # not_zero_cows = tool.get_nonzero_columns(Ap)
+    # for i in range(Max_of_S):
+    #     if i not in not_zero_cows:
+    #         constraints.append(x[i] == 0)  # x[i] 必须为 0
+    #     else :
+    #         constraints.append(x[i] >= 0)
 
     # 构建问题
     problem = cp.Problem(objective, constraints)
@@ -127,7 +128,9 @@ def solve_optimal_x(DFH, p, det=0.001, solver_options=None, verbose=True):
     print(f"Initial guess for x: {x.value}")
 
     # problem.solve(solver='ECOS', verbose=verbose)
-    problem.solve(verbose=verbose)
+    # problem.solve(verbose=verbose)
+    problem.solve(solver='ECOS', verbose=verbose, **solver_options)
+
 
     print(f"Ap shape: {Ap.shape}")
     print(f"DFH_dense shape: {DFH_dense.shape}")
@@ -137,7 +140,17 @@ def solve_optimal_x(DFH, p, det=0.001, solver_options=None, verbose=True):
     if problem.status in ["optimal", "OPTIMAL"]:
         print("最优解找到：")
         print(f"和为: {x.value.sum()}")
-        print(f"y': {(Ap @ x.value).shape}")
+        print(f"y'.shape: {(Ap @ x.value).shape}")
+        print(f"y': {(Ap @ x.value)}")
+
+        # 检查Ap 获取Ap的行、列和数值
+        rows, cols = Ap.nonzero()  # 获取非零元素的行列索引
+        values = Ap.data  # 获取非零元素的值
+
+        # 遍历所有非零元素，检查是否小于0
+        for r, c, value in zip(rows, cols, values):
+            if value < 0:
+                print(f"行: {r}, 列: {c}, 值: {value}")
         return x.value
     else:
         print(f"问题未找到最优解，状态：{problem.status}")
@@ -170,5 +183,6 @@ if __name__=="__main__":
             result = sum(x_optimal)/ N_of_S
             print("数据集的缩减效果", result)
             print("样本的缩减效果", D_of_sample/N_of_sample)
+            
 
     main()
