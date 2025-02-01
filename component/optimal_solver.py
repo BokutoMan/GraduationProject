@@ -91,66 +91,43 @@ def solve_optimal_x(DFH, p, det=0.00001, solver_options=None, verbose=True):
 
     # 定义目标函数
     weights = 1 / np.sqrt(DFH_dense + 1)  # 权重
-    objective = cp.Minimize(cp.sum(cp.multiply(weights, cp.abs(DFH_dense - cp.pos(Ap @ x)))))
+    objective = cp.Minimize(cp.sum(cp.multiply(weights, cp.abs(DFH_dense - Ap @ x))))
 
     # 构建约束
     indices = np.arange(Max_of_S)
     get_sum_expr = cp.sum(cp.multiply(indices, x))
     constraints = [
-        cp.sum(x) - D_of_S <= D_of_S * 1 / 2,
-        cp.sum(x) - D_of_S >= D_of_S * -1 / 2,
-        get_sum_expr - N_of_S <= N_of_S * det,
+        # cp.sum(x) - D_of_S <= D_of_S * 1 / 2,
+        # cp.sum(x) - D_of_S >= D_of_S * -1 / 2,
+        get_sum_expr - N_of_S == N_of_S * det,
+        # get_sum_expr - N_of_S >= -N_of_S * det,
         x >= 0,  # 非负约束
     ]
-    # 添加其他条件：如果某列没有非零值，则 x[i] = 0
-    # not_zero_cows = tool.get_nonzero_columns(Ap)
-    # for i in range(Max_of_S):
-    #     if i not in not_zero_cows:
-    #         constraints.append(x[i] == 0)  # x[i] 必须为 0
-    #     else :
-    #         constraints.append(x[i] >= 0)
 
     # 构建问题
     problem = cp.Problem(objective, constraints)
 
-    # 设置求解器参数
-    if solver_options is None:
-        solver_options = {
-            "limits/time": 100,  # 时间限制 100 秒
-            "limits/gap": 0.1,  # GAP 限制 1%
-            "display/verblevel": 5,  # 详细输出级别
-            "max_iter": 1000,
-        }
-
     # 求解问题
     print(f"Ap shape: {Ap.shape}")
     print(f"DFH_dense shape: {DFH_dense.shape}")
-    print(f"Initial guess for x: {x.value}")
+    print(f"Initial guess for x: {x.shape}")
 
-    # problem.solve(solver='ECOS', verbose=verbose)
-    # problem.solve(verbose=verbose)
-    problem.solve(solver='ECOS', verbose=verbose, **solver_options)
+    problem.solve(solver='ECOS', verbose=verbose)
 
-
-    print(f"Ap shape: {Ap.shape}")
-    print(f"DFH_dense shape: {DFH_dense.shape}")
-    print(f"Initial guess for x: {x.value}")
 
     # 输出最优解
     if problem.status in ["optimal", "OPTIMAL"]:
         print("最优解找到：")
-        print(f"和为: {x.value.sum()}")
+        print("最小值为: ", problem.variables)
+        print(f"和 * p 为: {x.value.sum() * p}")
         print(f"y'.shape: {(Ap @ x.value).shape}")
-        print(f"y': {(Ap @ x.value)}")
 
-        # 检查Ap 获取Ap的行、列和数值
-        rows, cols = Ap.nonzero()  # 获取非零元素的行列索引
-        values = Ap.data  # 获取非零元素的值
+        # 
+        x_int = [int(i) for i in x.value]
+        objective = np.sum(np.multiply(weights, np.abs(DFH_dense - Ap @ x_int)))
 
-        # 遍历所有非零元素，检查是否小于0
-        for r, c, value in zip(rows, cols, values):
-            if value < 0:
-                print(f"行: {r}, 列: {c}, 值: {value}")
+        print("int后的德尔塔:", objective)
+
         return x.value
     else:
         print(f"问题未找到最优解，状态：{problem.status}")

@@ -35,33 +35,40 @@ def main():
     datas = Reader.get_reader(new=True)  # 获取数据块迭代器
     dfh = compute_dfh_use_counter(datas, log_interval=100000)  # 计算 DFH
     print(dfh)  # 输出直方图
-    p = 0.3
+    # p = 0.3
 
-    # 转换为稀疏矩阵
-    dfh = dfh_to_sparse_vector(dfh)
-    # 打印结果
-    print("稀疏矩阵（列向量）：")
-    print(dfh)
-    dfh_flatten = dfh.toarray().flatten()
+    # # 转换为稀疏矩阵
+    # dfh = dfh_to_sparse_vector(dfh)
+    # # 打印结果
+    # print("稀疏矩阵（列向量）：")
+    # print(dfh)
+    # dfh_flatten = dfh.toarray().flatten()
 
-    D_of_sample, N_of_sample, Max_of_sample = compute_sample_properties(dfh_flatten)
-    print(D_of_sample, N_of_sample, Max_of_sample)
+    # D_of_sample, N_of_sample, Max_of_sample = compute_sample_properties(dfh_flatten)
+    # print(D_of_sample, N_of_sample, Max_of_sample)
 
-    DFH = dfh_flatten + 1.0e-30
-    # 计算最优解
-    x_optimal = solve_optimal_x(
-        DFH, p, det=0.001, verbose=True
-    )
+    # DFH = dfh_flatten + 1.0e-30
+    # # 计算最优解
+    # x_optimal = solve_optimal_x(
+    #     DFH, p, det=0.001, verbose=False
+    # )
 
-    # 输出结果
-    if x_optimal is not None:
-        N_of_sample = int(sum(i * count for i, count in enumerate(DFH)))
-        N_of_S = int(N_of_sample / p)
-        result = sum(x_optimal)/ N_of_S
-        print("x: ", x_optimal)
-        print("数据集的缩减效果", result)
-        print("样本的缩减效果", D_of_sample/N_of_sample)
-        print("稀疏矩阵（列向量）：")
-        print(dfh)
+    # # 输出结果
+    # if x_optimal is not None:
+    #     N_of_sample = int(sum(i * count for i, count in enumerate(DFH)))
+    #     N_of_S = int(N_of_sample / p)
+    #     result = sum(x_optimal)/ N_of_S
+    #     # print("x: ", x_optimal)
+    #     print("数据集的缩减效果", result)
+    #     print("样本的缩减效果", D_of_sample/N_of_sample)
+    #     print("重新计算的数据集缩减:",  sum(x_optimal)/tool.get_sum_num(x_optimal))
+    #     print("值的前五位:", x_optimal[:5])
+    #     x_int = [int(i) for i in x_optimal]
+    #     print("int后的缩减率:", sum(x_int)/tool.get_sum_num(x_int))
+    #     print("大于1的个数以及值:", sum(x_optimal>1))
+    #     for i, j in enumerate(x_optimal>1):
+    #         if j:
+    #             print(i, x_optimal[i])
+
 
 main()

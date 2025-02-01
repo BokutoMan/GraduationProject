@@ -33,10 +33,31 @@ class Reader:
         return cls._read_blocks(file_paths, block_size, big_block_size, lower, higher)
 
     @staticmethod
-    def _read_blocks(file_paths, block_size, big_block_size, lower, higher):
+    def get_files(file_paths, size):
+        # size转换为字节
+        size_in_bytes = size * 1024
+        result = []
+        
+        for path in file_paths:
+            if os.path.isdir(path):  # 如果是目录
+                for root, dirs, files in os.walk(path):  # 遍历目录及其子目录
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        # 获取文件大小
+                        if os.path.getsize(file_path) > size_in_bytes:
+                            result.append(file_path)
+            elif os.path.isfile(path):  # 如果是文件
+                if os.path.getsize(path) > size_in_bytes:
+                    result.append(path)
+        
+        return result
+
+    @classmethod
+    def _read_blocks(cls, file_paths, block_size, big_block_size, lower, higher):
         """
         遍历文件列表，按哈希值采样块，返回文件名与偏移地址。
         """
+        file_paths =  cls.get_files(file_paths, 100)
         for file_path in file_paths:
             if not os.path.isfile(file_path):
                 print(f"Warning: File not found: {file_path}")
@@ -79,15 +100,18 @@ class Reader:
 
 
 if __name__=="__main__":
-    i = 0
-    import time
-    start_time = time.time()
-    reader = Reader.get_reader()
-    # from utils.log import SimpleLogger
-    for block_data in reader:
-        print(f'\r {i}, {len(block_data)}', end="")
-        i += 1
-        # SimpleLogger.memory_log()
-    end_time = time.time()
-    print()
-    print(f"运行时间为: {end_time - start_time:.3f} 秒")
+    # i = 0
+    # import time
+    # start_time = time.time()
+    # reader = Reader.get_reader()
+    # # from utils.log import SimpleLogger
+    # for block_data in reader:
+    #     print(f'\r {i}, {len(block_data)}', end="")
+    #     i += 1
+    #     # SimpleLogger.memory_log()
+    # end_time = time.time()
+    # print()
+    # print(f"运行时间为: {end_time - start_time:.3f} 秒")
+    files = [r"D:\temp\ubuntu.iso" , r"D:\Software\VM_VirtualMachine"]
+    files_ = Reader.get_files(files, 100)
+    print(len(files_))

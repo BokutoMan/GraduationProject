@@ -14,3 +14,5 @@ def timer_decorator(msg=None):
             return result
         return wrapper
     return f
+
+

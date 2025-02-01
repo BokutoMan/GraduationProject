@@ -100,5 +100,5 @@ def generate_uniform_dfh(D_of_sample, Max_of_sample):
 def get_sum_num(l:list):
     sum = 0
     for i, num in enumerate(l):
-        sum += i*num
+        sum += (i+1)*num
     return sum
