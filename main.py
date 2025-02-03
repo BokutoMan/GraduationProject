@@ -1,9 +1,11 @@
+from comm.get_dfh_data import sparse_to_dense
 from utils import Reader, SimpleLogger
 from component.HashCount import HashCount
 import component.MathUtils as tool
 from component import compute_dfh_use_counter, solve_optimal_x
 from comm import timer_decorator
 from component.optimal_solver import compute_sample_properties, pad_dfh
+
 
 from scipy.sparse import csr_matrix
 import scipy.sparse as sp
@@ -35,6 +37,8 @@ def main():
     datas = Reader.get_reader(new=True)  # 获取数据块迭代器
     dfh = compute_dfh_use_counter(datas, log_interval=100000)  # 计算 DFH
     print(dfh)  # 输出直方图
+    fingerprint = sparse_to_dense(dfh)
+    print("重删率:", sum(fingerprint)/tool.get_sum_num(fingerprint))
     # p = 0.3
 
     # # 转换为稀疏矩阵
@@ -71,4 +75,13 @@ def main():
     #             print(i, x_optimal[i])
 
 
-main()
+# main()
+
+def com_rate():
+    from data.data01 import data_0201_1020 as data
+    fingerprint = sparse_to_dense(data)
+    print("重删率:", sum(fingerprint)/tool.get_sum_num(fingerprint))
+    
+
+if __name__ == '__main__':
+    main()

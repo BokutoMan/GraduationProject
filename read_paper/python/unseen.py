@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import poisson
 from scipy.optimize import linprog
 
-def unseen(f):
+def unseen(f, conf={"sampleRate":0.3}):
     # 输入：指纹 f，其中 f[i] 表示在样本中出现次数为 i 的元素数量。
     # 输出：真实分布的“直方图”近似值，histx[i] 表示具有概率 x[i] 的领域元素的数量。
     
@@ -12,7 +12,7 @@ def unseen(f):
     # 算法参数
     grid_factor = 1.1  # 概率网格的几何比例
     alpha = 0.001  # 返回的解与“最佳”解之间允许的最大误差
-    x_lp_min = 1 / (k * max(10, k))  # 最小允许的概率
+    x_lp_min = 1 / (k * max(10, 1/conf["sampleRate"]))  # 最小允许的概率
     min_i = np.min(np.where(f > 0))  # 查找 f 中大于 0 的最小索引
     if min_i > 1:
         x_lp_min = min_i / k  # 如果 f 中有大于 0 的元素，更新最小允许的概率

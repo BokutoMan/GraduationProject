@@ -69,19 +69,27 @@ class SimpleLogger:
         message += ('' if msg == None else f"    Message: {msg}" )
         cls.logger.info(message)
 
+    @staticmethod
+    def dfh_log(name:str, dfh:list, p:float):
+        import json
+        import time
+        with open(f"log/{name}_dfh.py", "+a", encoding="utf-8") as f:
+            f.write(f'# {time.strftime(r"%Y_%m_%d_%H_%M_%S")}\n' + f"{p} = {json.dumps(dfh)}\n")
+
 
 
 # 使用示例
 if __name__ == "__main__":
-    # 创建一个日志对象，将日志输出到当前目录下的app.log文件
-    logger = SimpleLogger.get_logger()
+    SimpleLogger.dfh_log("test", [1, 2, 3], 0.5)
+    # # 创建一个日志对象，将日志输出到当前目录下的app.log文件
+    # logger = SimpleLogger.get_logger()
 
-    # 记录不同级别的日志
-    logger.debug("This is a debug message.")
-    logger.info("This is an info message.")
-    logger.warning("This is a warning message.")
-    logger.error("This is an error message.")
-    logger.critical("This is a critical message.")
+    # # 记录不同级别的日志
+    # logger.debug("This is a debug message.")
+    # logger.info("This is an info message.")
+    # logger.warning("This is a warning message.")
+    # logger.error("This is an error message.")
+    # logger.critical("This is a critical message.")
 
-    logger.memory_log()
-    logger.memory_log("llll")
+    # logger.memory_log()
+    # logger.memory_log("llll")

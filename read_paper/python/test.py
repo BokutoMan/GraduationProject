@@ -14,7 +14,7 @@ import numpy as np
 
 # # 计算样本的指纹
 # fingerprint = makeFinger(samp)
-from data.data01 import data_100 as data
+from data.data01 import data_0201_1041 as data
 from comm import sparse_to_dense
 fingerprint = sparse_to_dense(data)
 
@@ -38,10 +38,15 @@ print("sum(fingerprint)：", np.sum(fingerprint))
 
 from component.MathUtils import get_sum_num
 print("sum(histx * num)：", get_sum_num(histx))
-print("sum(fingerprint * num)：", get_sum_num(fingerprint))
-print("sum_big/sum_simp: ", get_sum_num(histx)/get_sum_num(fingerprint))
-print("样本压缩率：", get_sum_num(fingerprint)/np.sum(fingerprint))
-print("估计总体压缩率：", get_sum_num(histx)/np.sum(histx))
+sum_finger = get_sum_num(fingerprint)
+print("sum(fingerprint * num)：", sum_finger)
+sum_histx = np.dot(histx, x) 
+print("sum(histx * x)：", sum_histx)
+num_x = x * (sum_finger/0.3)
+print("num_x：", num_x)
+print("sum_simp/sum_big: ", sum_finger/sum_histx)
+print("样本压缩率：", np.sum(fingerprint)/sum_finger)
+print("估计总体压缩率：", np.sum(histx)/sum_histx)
 
 # # 计算估计的熵
 # estimated_entropy = -np.sum(histx * x * np.log(x))

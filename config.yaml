@@ -3,12 +3,13 @@ log:
 
 # readFile: D:\tools\fm20240923\fm20240923.zip
 reader:
-    read_file_paths: [D:\temp\ubuntu.iso, D:\Software\VM_VirtualMachine]
+    # read_file_paths: [D:\temp\ubuntu.iso, D:\Software\VM_VirtualMachine]
+    read_file_paths: [D:\Software\VM_VirtualMachine\ubuntu-22.10-use-mem]
     big_block_size: 1024*1024  # 1MB
     block_size: 1024*4     # 4KB
     range:
         lower: 0.0   # 30%
-        hight: 1.0
+        hight: 0.3
 
 # 求解器使用的配置
 solver_options: 
