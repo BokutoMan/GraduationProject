@@ -2,9 +2,9 @@ from comm.get_dfh_data import sparse_to_dense
 from utils import Reader, SimpleLogger
 from component.HashCount import HashCount
 import component.MathUtils as tool
-from component import compute_dfh_use_counter, solve_optimal_x
+from component import compute_dfh_use_counter
 from comm import timer_decorator
-from component.Unseen import compute_sample_properties, pad_dfh
+from component import Unseen
 
 
 from scipy.sparse import csr_matrix
