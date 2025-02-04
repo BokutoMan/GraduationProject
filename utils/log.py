@@ -70,17 +70,18 @@ class SimpleLogger:
         cls.logger.info(message)
 
     @staticmethod
-    def dfh_log(name:str, dfh:list, p:float):
+    def dfh_log(name:str, dfh:list, p:float, msg=""):
         import json
         import time
+        from utils import FloatToStr
+        var = FloatToStr().float_to_str(p)
         with open(f"log/{name}_dfh.py", "+a", encoding="utf-8") as f:
-            f.write(f'# {time.strftime(r"%Y_%m_%d_%H_%M_%S")}\n' + f"{p} = {json.dumps(dfh)}\n")
-
+            f.write(f'# {time.strftime(r"%Y-%m-%d %H:%M:%S")} , p = {p} {msg}\n' + f"{var} = {json.dumps(dfh)}\n")
 
 
 # 使用示例
 if __name__ == "__main__":
-    SimpleLogger.dfh_log("test", [1, 2, 3], 0.5)
+    SimpleLogger.dfh_log("test", [1, 2, 3, (3,4)], 0.5, msg="尝试")
     # # 创建一个日志对象，将日志输出到当前目录下的app.log文件
     # logger = SimpleLogger.get_logger()
 

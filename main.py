@@ -4,7 +4,7 @@ from component.HashCount import HashCount
 import component.MathUtils as tool
 from component import compute_dfh_use_counter, solve_optimal_x
 from comm import timer_decorator
-from component.optimal_solver import compute_sample_properties, pad_dfh
+from component.Unseen import compute_sample_properties, pad_dfh
 
 
 from scipy.sparse import csr_matrix
