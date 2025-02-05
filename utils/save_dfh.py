@@ -18,12 +18,17 @@ class SaveDFH:
             f.write(f'# {time.strftime(r"%Y-%m-%d %H:%M:%S")} , p = {p} {msg}\n' + f"{var} = {json.dumps(dfh)}\n")
 
     def get_dfh(self, p:float):
+        """
+        # 根据概率 p 获取对应的 dfh
+        """
         var = self.float_to_str(p)
         import importlib
         # 动态导入模块
         model_name = f"data.dfh.{self.name}"
         module = importlib.import_module(model_name)
         dfh = getattr(module, var, None)
+        if dfh is None:
+            raise ValueError(f"{self.name} 概率 {p} dfh 变量 {var} 不存在")
         re = []
         for i in dfh:
             if isinstance(i, list):

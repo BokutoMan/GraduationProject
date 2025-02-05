@@ -157,7 +157,6 @@ class Unseen:
         y: 样本的DFH，格式为字典 {i: y_i}。
         p: 样本比例。
         N: 数据集的总大小。
-        alpha: 松弛参数，控制范围估计的宽度。
         
         返回:
         r_low: 去重比例的下界。
@@ -261,11 +260,11 @@ class Unseen:
     # 外部调用，直接用dfh估计去重比例
     def estimate_support_size(self, filder_num=100):
         """
-        估计 D。
-        返回: x_hat, r_hat, res, dense_dfh
+        filder_num : 过滤数，小于该值的部分将使用算法估计，大于的部分将使用频率估计
 
-        N: 估计的数据集大小。
+        return : (r_low, r_high)
         """
+        # 根据过滤数 filder_num，筛选出符合条件的字典 F
         F = {i: j for i, j in self.dfh if i <= filder_num}
     
         # 计算需要使用算法估计得样本总块数 K_sample
@@ -275,7 +274,9 @@ class Unseen:
         # 验证样本总块数是否与 p*N 匹配
         assert np.isclose(K_sample, self.p * N, rtol=1e-3), "样本总块数与 p*N 不匹配"
         
+        # 计算未见过数据的范围
         r_low, r_high = self.unseen_range(F, self.p, N)
+        # 筛选出过滤数大于 filder_num 的字典 dense_dfh
         dense_dfh = {i: j for i, j in self.dfh if i > filder_num}
         # r = ( r_*N + sum(dense_dfh.values()) ) / sum(dfh.values())
         r_low = ( r_low * N + sum(dense_dfh.values()) ) / self.N

@@ -5,13 +5,11 @@ import os
 import psutil
 
 class SimpleLogger:
-    logger:Logger = None
     # 获取当前进程ID
     pid = os.getpid()
     process = psutil.Process(pid)
-    log_file = Config.get_log_config()["log_file_path"]
     @classmethod
-    def get_new_logger(cls, name="memory", level=logging.INFO, log_file=log_file):
+    def get_new_logger(cls, name="memory", level=logging.INFO, log_file=None):
         """
         初始化日志类。
         
@@ -19,8 +17,8 @@ class SimpleLogger:
         :param level: 日志级别（默认为INFO）。
         :param log_file: 日志文件路径（如果为None，则输出到控制台）。
         """
-        cls.logger = logging.getLogger(name)
-        cls.logger.setLevel(level)
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
         
         # 设置日志格式
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -29,21 +27,14 @@ class SimpleLogger:
         if log_file:
             file_handler = logging.FileHandler(log_file, encoding='utf-8')
             file_handler.setFormatter(formatter)
-            cls.logger.addHandler(file_handler)
+            logger.addHandler(file_handler)
         else:
             # 否则，添加控制台处理器
             console_handler = logging.StreamHandler()
             console_handler.setFormatter(formatter)
-            cls.logger.addHandler(console_handler)
+            logger.addHandler(console_handler)
         
-        cls.logger.memory_log = cls.memory_log
-        return cls.logger
-    
-    @classmethod
-    def get_logger(cls):
-        if cls.logger == None:
-            return cls.get_new_logger()
-        return cls.logger
+        return logger
     
     @classmethod
     def memory_log(cls, msg=None, interval=1, cup_and_io=False):
@@ -68,15 +59,6 @@ class SimpleLogger:
         # 加入msg
         message += ('' if msg == None else f"    Message: {msg}" )
         cls.logger.info(message)
-
-    @staticmethod
-    def dfh_log(name:str, dfh:list, p:float, msg=""):
-        import json
-        import time
-        from utils import FloatToStr
-        var = FloatToStr().float_to_str(p)
-        with open(f"log/{name}_dfh.py", "+a", encoding="utf-8") as f:
-            f.write(f'# {time.strftime(r"%Y-%m-%d %H:%M:%S")} , p = {p} {msg}\n' + f"{var} = {json.dumps(dfh)}\n")
 
 
 # 使用示例
