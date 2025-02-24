@@ -136,7 +136,7 @@ class Reader:
 
     def get_reader(self):
         """
-        获取或重新创建 Reader。
+        获取 Reader。
         """
         if not self.is_batch_reading:
             return self._read_blocks()
@@ -151,9 +151,10 @@ if __name__=="__main__":
     reader = Reader(config=tm.get_config(name="test1").get_reader_config(),
                     logger=tm.get_logger(name="test1"))
     
-    read = reader.get_reader()
-    print(read)
+    readers = reader.get_reader()
+    print(readers)
     i = 0
-    for data in read:
-        i += 1
-    print(i)
+    for reader in readers:
+        for data in reader:
+            i += 1
+        print(i)

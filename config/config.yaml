@@ -12,7 +12,7 @@ reader:
         higher: 0.3
     random_pre: true  # 若为true，则每次读取时都会生成一个随机的pre，相当于每次都读取不同的随机块
     prefix: kvd    # 随机字符串，在计算块名hash时使用，用于标识不同的批次
-    is_batch_reading : false  # 是否分批次读取
+    is_batch_reading : true  # 是否分批次读取
     batch_size: 0.1  # 每次读取 10%
 
     small_file_size: 4*1024  # 小于4KB的文件，直接忽略

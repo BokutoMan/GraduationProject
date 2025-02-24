@@ -1,5 +1,6 @@
 import logging
 from logging import Logger
+import logging.handlers
 from utils.config import Config
 import os
 import psutil
@@ -25,7 +26,7 @@ class SimpleLogger:
         
         # 如果提供了日志文件路径，则添加文件处理器
         if log_file:
-            file_handler = logging.FileHandler(log_file, encoding='utf-8')
+            file_handler = logging.handlers.RotatingFileHandler(log_file, mode='a', maxBytes=10 * 1024 * 1024, backupCount=5)
             file_handler.setFormatter(formatter)
             logger.addHandler(file_handler)
         else:
@@ -63,16 +64,16 @@ class SimpleLogger:
 
 # 使用示例
 if __name__ == "__main__":
-    SimpleLogger.dfh_log("test", [1, 2, 3, (3,4)], 0.5, msg="尝试")
-    # # 创建一个日志对象，将日志输出到当前目录下的app.log文件
-    # logger = SimpleLogger.get_logger()
+    
+    # 创建一个日志对象，将日志输出到当前目录下的app.log文件
+    logger = SimpleLogger.get_logger()
 
-    # # 记录不同级别的日志
-    # logger.debug("This is a debug message.")
-    # logger.info("This is an info message.")
-    # logger.warning("This is a warning message.")
-    # logger.error("This is an error message.")
-    # logger.critical("This is a critical message.")
+    # 记录不同级别的日志
+    logger.debug("This is a debug message.")
+    logger.info("This is an info message.")
+    logger.warning("This is a warning message.")
+    logger.error("This is an error message.")
+    logger.critical("This is a critical message.")
 
-    # logger.memory_log()
-    # logger.memory_log("llll")
+    logger.memory_log()
+    logger.memory_log("llll")
