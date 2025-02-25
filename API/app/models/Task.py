@@ -11,10 +11,10 @@ from API.app import db
 
 # 定义枚举类型（Flask-SQLAlchemy 支持的 Enum 方式）
 class TaskStatus(Enum):
-    PENDING = 0
-    IN_PROGRESS = 1
-    COMPLETED = 2
-    BLOCKED = 3
+    PENDING = 0  # 待处理
+    IN_PROGRESS = 1  # 进行中
+    COMPLETED = 2  # 已完成
+    BLOCKED = 3  # 已阻塞
 
 class TaskPriority(Enum):
     LOW = 0

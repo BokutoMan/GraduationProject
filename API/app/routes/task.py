@@ -60,6 +60,16 @@ def update_task():
     db.session.commit()
     return task_.to_dict()
 
+def update_status(taskDict):
+    if taskDict["status"] == TaskStatus.BLOCKED.value:
+        taskDict["status"] = "BLOCKED"
+    elif taskDict["status"] == TaskStatus.COMPLETED.value:
+        taskDict["status"] = "COMPLETED"
+    elif taskDict["status"] == TaskStatus.IN_PROGRESS.value:
+        taskDict["status"] = "IN_PROGRESS"
+    elif taskDict["status"] == TaskStatus.PENDING.value:
+        taskDict["status"] = "PENDING"
+    return taskDict
 
 @tasks_bp.route('/search', methods=['POST'])
 def search_task():
@@ -92,6 +102,7 @@ def search_task():
         print(paginated_query)
         results = paginated_query.all()
         re = [task.to_dict() for task in results]
+        re = [update_status(task) for task in re]
         response = {
             "code": 0,
             "message": "Success",
