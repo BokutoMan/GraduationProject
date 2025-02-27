@@ -16,6 +16,19 @@ class TaskStatus(Enum):
     COMPLETED = 2  # 已完成
     BLOCKED = 3  # 已阻塞
 
+str_to_status = {
+    "PENDING": TaskStatus.PENDING.value,
+    "IN_PROGRESS": TaskStatus.IN_PROGRESS.value,
+    "COMPLETED": TaskStatus.COMPLETED.value,
+    "BLOCKED": TaskStatus.BLOCKED.value
+}
+status_to_str = {
+    TaskStatus.PENDING: "PENDING",
+    TaskStatus.IN_PROGRESS: "IN_PROGRESS",
+    TaskStatus.COMPLETED: "COMPLETED",
+    TaskStatus.BLOCKED: "BLOCKED"
+}
+
 class TaskPriority(Enum):
     LOW = 0
     MEDIUM = 1
@@ -47,6 +60,7 @@ class Task(db.Model):
         if not isinstance(value, TaskPriority):
             raise ValueError("Invalid task priority")
         return value
+    
 
     # 转换为字典（保留原有逻辑）
     def to_dict(self) -> Dict[str, Any]:
@@ -54,7 +68,7 @@ class Task(db.Model):
             "id": self.id,
             "title": self.title,
             "description": self.description,
-            "status": self.status.value,
+            "status": status_to_str[self.status],
             "priority": self.priority.value,
             "due_date": self.due_date.isoformat() if self.due_date else None,
             "custom_field": self.custom_field,
@@ -67,7 +81,7 @@ class Task(db.Model):
         return cls(
             title=data["title"],
             description=data.get("description", ""),
-            status=TaskStatus(data.get("status", 0)),
+            status=str_to_status[data.get("status", "PENDING")],
             priority=TaskPriority(data.get("priority", 1)),
             due_date=data.get("due_date"),
             custom_field=data.get("custom_field"),
@@ -76,7 +90,7 @@ class Task(db.Model):
     def update_from_dict(self, data: Dict[str, Any]) -> None:
         self.title = data.get("title", self.title)
         self.description = data.get("description", self.description)
-        self.status = TaskStatus(data.get("status", self.status.value))
+        self.status = str_to_status[data.get("status")] | self.status
         self.priority = TaskPriority(data.get("priority", self.priority.value))
         self.due_date = data.get("due_date", self.due_date)
         self.custom_field = data.get("custom_field", self.custom_field)

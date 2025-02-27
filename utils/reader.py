@@ -1,3 +1,4 @@
+import logging
 import os
 from utils import Config
 from logging import Logger
@@ -26,6 +27,7 @@ class Reader:
         :param batch_size: 批量读取时每次读取的比例。
         :param small_file_size: 读取的最小文件的大小。
         """
+        self.config = config
         # 获取配置或使用默认值
         get_value = lambda a, b: a if a is not None else b
         self.file_paths = get_value(file_paths, config.get("read_file_paths"))
@@ -61,6 +63,9 @@ class Reader:
         else:
             self.now_lower = self.lower
             self.now_higher = self.higher
+
+        self.already_read_size = 0
+
 
     # 重置配置
     def set_new_reader(self, **kargs):
@@ -115,13 +120,14 @@ class Reader:
 
                     # 使用哈希值决定是否采样
                     hash_value = hash_mm3_64(identifier)
-                    if self.lower <= hash_value <= self.higher:
+                    if self.now_lower <= hash_value <= self.now_higher:
                         file.seek(start_pos)
                         block_data = file.read(self.big_block_size)
 
                         # 分割大块为小块
                         for i in range(0, len(block_data), self.block_size):
                             yield block_data[i:i + self.block_size]
+                        self.already_read_size += self.big_block_size
 
     def _read_blocks_batch(self):
         """
@@ -134,27 +140,39 @@ class Reader:
             if self.now_higher > self.higher:
                 self.now_higher = self.higher
 
-    def get_reader(self):
+    def get_reader(self, new=False):
         """
         获取 Reader。
         """
+        if new:
+            self.__init__(config=self.config, logger=self.logger)
         if not self.is_batch_reading:
             return self._read_blocks()
         else:
             return self._read_blocks_batch()
+        
+
+    @classmethod
+    def get_test_reader(cls):
+        from utils import Config, SimpleLogger
+        config = Config(name="test1")
+        reader = cls(config=config.get_reader_config(),
+                        logger=SimpleLogger.get_new_logger(name="reader", level=logging.INFO, log_file="log/reader.log"))
+        return reader
 
 
 if __name__=="__main__":
-    from utils import ToolManager
-    tm = ToolManager()
+    from utils import Config, SimpleLogger
+    config = Config(name="test1")
 
-    reader = Reader(config=tm.get_config(name="test1").get_reader_config(),
-                    logger=tm.get_logger(name="test1"))
+
+    reader = Reader(config=config.get_reader_config(),
+                    logger=SimpleLogger.get_new_logger(name="reader", level=logging.INFO, log_file="log/reader.log"))
     
-    readers = reader.get_reader()
-    print(readers)
+    reader_generate = reader.get_reader()
+    print(reader_generate, reader.total_size, len(reader.read_file_paths))
     i = 0
-    for reader in readers:
-        for data in reader:
+    for reader_ in reader_generate:
+        for data in reader_:
             i += 1
-        print(i)
+        print(i, reader.already_read_size, reader.now_lower, reader.now_higher, reader.already_read_size/reader.total_size)

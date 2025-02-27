@@ -2,14 +2,17 @@ import heapq
 from component.HashCount import HashCount
 
 class CustomHeap:
-    def __init__(self):
-        self.heap = []
-        self.seen = {}
+    def __init__(self, max_size=None):
+        self.heap : list[HashCount] = []
+        self.seen : dict[float, HashCount] = {}
+        self.max_size = max_size
 
     def push(self, val:HashCount):
         if val.hash not in self.seen:
             heapq.heappush(self.heap, val)
             self.seen[val.hash] = val
+            if self.max_size is not None and len(self.heap) > self.max_size:
+                self.pop()
         else:
             # 当值已经存在时
             self.seen[val.hash] += val

@@ -1,6 +1,7 @@
 import logging
 from logging import Logger
 import logging.handlers
+import time
 from utils.config import Config
 import os
 import psutil
@@ -9,6 +10,7 @@ class SimpleLogger:
     # 获取当前进程ID
     pid = os.getpid()
     process = psutil.Process(pid)
+    last_print_time = time.time()
     @classmethod
     def get_new_logger(cls, name="memory", level=logging.INFO, log_file=None):
         """
@@ -39,27 +41,29 @@ class SimpleLogger:
     
     @classmethod
     def memory_log(cls, msg=None, interval=1, cup_and_io=False):
-        if cls.logger == None:
-            cls.get_new_logger()
-        message = ""
-        # 获取内存使用量
-        memory_info = cls.process.memory_info()
-        message += f"Memory usage: {memory_info.rss / (1024 * 1024):.2f} MB   "
-        if cup_and_io:
-            # 获取cpu使用率
-            cpu_usage_percent = cls.process.cpu_percent(interval=None)
-            message += f"  CPU使用率: {cpu_usage_percent:.2f}%"
-            # 获取系统级别的IO信息
-            disk_io = psutil.disk_io_counters()
-            net_io = psutil.net_io_counters()
-            message += f"  磁盘读取速度：{disk_io.read_bytes / interval / (1024 * 1024):.2f} MB/s"
-            message += f"  磁盘写入速度：{disk_io.write_bytes / interval / (1024 * 1024):.2f} MB/s"
-            message += f"  网络发送速度：{net_io.bytes_sent / interval / (1024 * 1024):.2f} MB/s"
-            message += f"  网络接收速度：{net_io.bytes_recv / interval / (1024 * 1024):.2f} MB/s"
-        
-        # 加入msg
-        message += ('' if msg == None else f"    Message: {msg}" )
-        cls.logger.info(message)
+        current_time = time.time()
+        if current_time - cls.last_print_time >= 1:
+            message = ""
+            # 获取内存使用量
+            memory_info = cls.process.memory_info()
+            message += f"Memory usage: {memory_info.rss / (1024 * 1024):.2f} MB   "
+            if cup_and_io:
+                # 获取cpu使用率
+                cpu_usage_percent = cls.process.cpu_percent(interval=None)
+                message += f"  CPU使用率: {cpu_usage_percent:.2f}%"
+                # 获取系统级别的IO信息
+                disk_io = psutil.disk_io_counters()
+                net_io = psutil.net_io_counters()
+                message += f"  磁盘读取速度：{disk_io.read_bytes / interval / (1024 * 1024):.2f} MB/s"
+                message += f"  磁盘写入速度：{disk_io.write_bytes / interval / (1024 * 1024):.2f} MB/s"
+                message += f"  网络发送速度：{net_io.bytes_sent / interval / (1024 * 1024):.2f} MB/s"
+                message += f"  网络接收速度：{net_io.bytes_recv / interval / (1024 * 1024):.2f} MB/s"
+            
+            # 加入msg
+            message += ('' if msg == None else f"    Message: {msg}" )
+            
+            print( message)
+            cls.last_print_time = current_time
 
 
 # 使用示例
