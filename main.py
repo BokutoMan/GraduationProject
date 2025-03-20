@@ -10,12 +10,6 @@ from threading import Thread
 import uuid
 from functools import partial
 
-# 全局变量
-progress_queue = None  # 进度消息队列
-queue_consumer = None  # 队列消费线程
-
-app = Flask(__name__)
-
 # ======== 全局资源初始化 ========
 def init_globals():
     global progress_queue, queue_consumer, task_pool, task_status, MAX_WORKERS, semaphore
@@ -167,5 +161,6 @@ def register_shutdown_hook():
 
 if __name__ == '__main__':
     init_globals()
+    app = Flask(__name__)
     register_shutdown_hook()
     app.run(threaded=True, port=5000)

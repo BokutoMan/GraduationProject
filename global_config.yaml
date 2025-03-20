@@ -1,5 +1,0 @@
-test1: {
-  config_path: "config/config.yaml",
-  log_path: "log/test1.log",
-  dfh_save_path: "data/dfh/test.py"
-}

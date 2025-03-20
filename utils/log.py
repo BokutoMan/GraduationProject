@@ -1,83 +1,130 @@
-import logging
 from logging import Logger
-import logging.handlers
 import time
-from utils.config import Config
 import os
+import os
+import inspect
+from datetime import datetime
+
 import psutil
 
-class SimpleLogger:
-    # 获取当前进程ID
-    pid = os.getpid()
-    process = psutil.Process(pid)
-    last_print_time = time.time()
-    @classmethod
-    def get_new_logger(cls, name="memory", level=logging.INFO, log_file=None):
+class Logger:
+    def __init__(self, module_name, process_id=None, date_fmt="%Y-%m-%dT%H:%M:%S.%f", set_process=False):
         """
-        初始化日志类。
-        
-        :param name: 日志记录器的名称。
-        :param level: 日志级别（默认为INFO）。
-        :param log_file: 日志文件路径（如果为None，则输出到控制台）。
+        初始化日志记录器
+        :param module_name: 模块名称
+        :param process_id: 进程ID(默认自动获取)
+        :param date_fmt: 时间格式(ISO8601 格式)
         """
-        logger = logging.getLogger(name)
-        logger.setLevel(level)
-        
-        # 设置日志格式
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        
-        # 如果提供了日志文件路径，则添加文件处理器
-        if log_file:
-            file_handler = logging.handlers.RotatingFileHandler(log_file, mode='a', maxBytes=10 * 1024 * 1024, backupCount=5)
-            file_handler.setFormatter(formatter)
-            logger.addHandler(file_handler)
-        else:
-            # 否则，添加控制台处理器
-            console_handler = logging.StreamHandler()
-            console_handler.setFormatter(formatter)
-            logger.addHandler(console_handler)
-        
-        return logger
+        self.module_name = module_name
+        self.process_id = process_id or os.getpid()
+        self.date_fmt = date_fmt
+        self.handlers = []
+        self.last_print_time = time.time()
+        self.process = None
+        if set_process:
+            self.set_process()
     
-    @classmethod
-    def memory_log(cls, msg=None, interval=1, cup_and_io=False):
+    def set_process(self):
+        self.process = psutil.Process(os.getpid())
+        
+    def add_handler(self, handler):
+        """添加日志处理函数"""
+        self.handlers.append(handler)
+        
+    def _log(self, level, message, *args, **kwargs):
+        """日志记录核心方法"""
+        timestamp = datetime.now().strftime(self.date_fmt)
+        stack = inspect.stack()
+        caller_frame = stack[2]  # 获取调用者帧信息
+        
+        # 获取代码位置信息
+        filename = os.path.basename(caller_frame.filename)
+        lineno = caller_frame.lineno
+        code_location = f"{filename}:{lineno}"
+
+        # 格式化消息内容
+        formatted_msg = message.format(*args, **kwargs) if args or kwargs else message
+        
+        # 构造完整日志条目
+        log_entry = (
+            f"pid {self.process_id} - {self.module_name} - {timestamp} - "
+            f"{code_location} - {level.upper()} - {formatted_msg}"
+        )
+        
+        # 调用所有处理函数
+        for handler in self.handlers:
+            handler(log_entry)
+    
+    def debug(self, message, *args, **kwargs):
+        self._log("DEBUG", message, *args,  **kwargs)
+    
+    def info(self, message, *args, **kwargs):
+        self._log("INFO", message, *args, **kwargs)
+    
+    def warning(self, message, *args, **kwargs):
+        self._log("WARNING", message, *args, **kwargs)
+    
+    def error(self, message, *args, **kwargs):
+        self._log("ERROR", message, *args, **kwargs)
+    
+    def critical(self, message, *args, **kwargs):
+        self._log("CRITICAL", message, *args, **kwargs)
+
+    # 预定义输出处理函数
+    def console_handler(self, log_entry):
+        """控制台输出处理器"""
+        print(log_entry)
+
+    def file_handler(self, file_path):
+        """文件输出处理器工厂函数"""
+        def handler(log_entry):
+            with open(file_path, "a", encoding="utf-8") as f:
+                f.write(log_entry + "\n")
+        return handler
+
+    def memory_log(self, msg=None, no_lock=False):
         current_time = time.time()
-        if current_time - cls.last_print_time >= 1:
+        if current_time - self.last_print_time >= 1 or no_lock:
             message = ""
             # 获取内存使用量
-            memory_info = cls.process.memory_info()
+            memory_info = self.process.memory_info()
             message += f"Memory usage: {memory_info.rss / (1024 * 1024):.2f} MB   "
-            if cup_and_io:
-                # 获取cpu使用率
-                cpu_usage_percent = cls.process.cpu_percent(interval=None)
-                message += f"  CPU使用率: {cpu_usage_percent:.2f}%"
-                # 获取系统级别的IO信息
-                disk_io = psutil.disk_io_counters()
-                net_io = psutil.net_io_counters()
-                message += f"  磁盘读取速度：{disk_io.read_bytes / interval / (1024 * 1024):.2f} MB/s"
-                message += f"  磁盘写入速度：{disk_io.write_bytes / interval / (1024 * 1024):.2f} MB/s"
-                message += f"  网络发送速度：{net_io.bytes_sent / interval / (1024 * 1024):.2f} MB/s"
-                message += f"  网络接收速度：{net_io.bytes_recv / interval / (1024 * 1024):.2f} MB/s"
-            
+            # 获取cpu使用率
+            cpu_usage_percent = self.process.cpu_percent(interval=None)
+            message += f"  CPU使用率: {cpu_usage_percent:.2f}%"
+        
             # 加入msg
             message += ('' if msg == None else f"    Message: {msg}" )
-            
-            print( message)
-            cls.last_print_time = current_time
+            self._log("MEMORY", message)
+            self.last_print_time = current_time
 
 
 # 使用示例
 if __name__ == "__main__":
+    # 初始化日志记录器
+    logger = Logger(
+        module_name="UserAuth",
+        date_fmt="%Y-%m-%dT%H:%M:%S.%f",
+        set_process=True
+    )
     
-    # 创建一个日志对象，将日志输出到当前目录下的app.log文件
-    logger = SimpleLogger.get_logger()
-
-    # 记录不同级别的日志
-    logger.debug("This is a debug message.")
-    logger.info("This is an info message.")
-    logger.warning("This is a warning message.")
-    logger.error("This is an error message.")
-    logger.critical("This is a critical message.")
-
-    logger.memory_log()
-    logger.memory_log("llll")
+    # 添加处理器
+    logger.add_handler(logger.console_handler)
+    logger.add_handler(logger.file_handler("log/app.log"))
+    
+    # 记录不同级别日志
+    logger.info("System initialization completed")
+    logger.warning("Disk usage exceeds 80%")
+    logger.error("Failed to connect to database: user_db", db_name="user_db")
+    
+    # 带参数的日志
+    user = "john_doe"
+    logger.debug("User login attempt: {username}", username=user)
+    
+    # 记录代码位置
+    def login():
+        logger.info("User {uid} logged in", uid="A123")
+        logger.memory_log("Login success", no_lock=True)
+    
+    login()
+    
